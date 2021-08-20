@@ -468,24 +468,27 @@ internal class YPLibraryVC: UIViewController, YPPermissionCheckable {
                     
                     switch asset.asset.mediaType {
                     case .image:
-                        self.fetchImageAndCrop(for: asset.asset, withCropRect: asset.cropRect) { image, exifMeta in
-                            let photo = YPMediaPhoto(image: image.resizedImageIfNeeded(),
-													 exifMeta: exifMeta, asset: asset.asset)
-                            resultMediaItems.append(YPMediaItem.photo(p: photo))
-                            asyncGroup.leave()
-                        }
-                        
-                    case .video:
-                        self.fetchVideoAndApplySettings(for: asset.asset,
-                                                             withCropRect: asset.cropRect) { videoURL in
-                            if let videoURL = videoURL {
-                                let videoItem = YPMediaVideo(thumbnail: thumbnailFromVideoPath(videoURL),
-                                                             videoURL: videoURL, asset: asset.asset)
-                                resultMediaItems.append(YPMediaItem.video(v: videoItem))
-                            } else {
-                                ypLog("Problems with fetching videoURL.")
+                        DispatchQueue.main.async {
+                            self.fetchImageAndCrop(for: asset.asset, withCropRect: asset.cropRect) {[weak self] image, exifMeta in
+                                let photo = YPMediaPhoto(image: image.resizedImageIfNeeded(),
+                                                         exifMeta: exifMeta, asset: asset.asset)
+                                resultMediaItems.append(YPMediaItem.photo(p: photo))
+                                asyncGroup.leave()
                             }
-                            asyncGroup.leave()
+                        }
+                    case .video:
+                        DispatchQueue.main.async {
+                            self.fetchVideoAndApplySettings(for: asset.asset,
+                                                            withCropRect: asset.cropRect) {[weak self] videoURL in
+                                if let videoURL = videoURL {
+                                    let videoItem = YPMediaVideo(thumbnail: thumbnailFromVideoPath(videoURL),
+                                                                 videoURL: videoURL, asset: asset.asset)
+                                    resultMediaItems.append(YPMediaItem.video(v: videoItem))
+                                } else {
+                                    ypLog("Problems with fetching videoURL.")
+                                }
+                                asyncGroup.leave()
+                            }
                         }
                     default:
                         break
